@@ -1,5 +1,6 @@
 import yaml from 'js-yaml';
 import { clashFix } from '../../../utils/format-utils.js';
+import { normalizeProxyPluginOpts } from '../../../utils/url-to-clash.js';
 import { normalizeUnifiedTemplateModel } from '../template-model.js';
 import { DNS_PROXY_GROUP, resolveSafeDnsConfig } from '../safe-dns.js';
 
@@ -144,6 +145,7 @@ function mapRule(rule, ruleProviderMap) {
 
 export function renderClashFromTemplateModel(model) {
     const normalizedModel = normalizeUnifiedTemplateModel(model);
+    normalizeProxyPluginOpts(normalizedModel.proxies);
 
     const ruleProviders = {};
     const ruleProviderMap = new Map();

@@ -4,7 +4,7 @@
  * 支持 dialer-proxy、reality-opts 等特殊参数
  */
 
-import { urlsToClashProxies } from '../../utils/url-to-clash.js';
+import { urlsToClashProxies, normalizeProxyPluginOpts } from '../../utils/url-to-clash.js';
 import { getUniqueName } from './name-utils.js';
 import { isMetaCore } from './user-agent-utils.js';
 import { DNS_PROXY_GROUP, resolveSafeDnsConfig } from './safe-dns.js';
@@ -156,7 +156,7 @@ export function generateBuiltinClashConfig(nodeList, options = {}) {
         .filter((line) => line && !line.startsWith('#'));
 
     // 转换为 Clash 代理对象
-    let proxies = urlsToClashProxies(nodeUrls, options);
+    let proxies = normalizeProxyPluginOpts(urlsToClashProxies(nodeUrls, options));
 
     // 清理控制字符
     proxies = deepCleanControlChars(proxies);
@@ -283,7 +283,7 @@ export function generateProxiesOnly(nodeList) {
         .map((line) => line.trim())
         .filter((line) => line && !line.startsWith('#'));
 
-    let proxies = urlsToClashProxies(nodeUrls);
+    let proxies = normalizeProxyPluginOpts(urlsToClashProxies(nodeUrls));
 
     // 清理控制字符
     proxies = deepCleanControlChars(proxies);

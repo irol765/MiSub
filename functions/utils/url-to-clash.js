@@ -569,6 +569,24 @@ function parseSsPlugin(pluginStr) {
 }
 
 /**
+ * 归一化代理对象中的 SS 插件 mux 参数类型。
+ * 部分来源（例如 Clash YAML 订阅）会把 mux 带成字符串 "0"/"1"，
+ * 若原样进入 yaml.dump 会输出 mux: "0"，导致 subconverter 等
+ * 下游工具按 bool 解析时报错。这里在生成 Clash YAML 前统一转成布尔值。
+ */
+export function normalizeProxyPluginOpts(proxies) {
+    if (!Array.isArray(proxies)) return proxies;
+    for (const proxy of proxies) {
+        const opts = proxy?.['plugin-opts'];
+        if (opts && typeof opts.mux === 'string') {
+            if (opts.mux === '1' || opts.mux === 'true') opts.mux = true;
+            else if (opts.mux === '0' || opts.mux === 'false') opts.mux = false;
+        }
+    }
+    return proxies;
+}
+
+/**
  * 将 Shadowsocks URL 转换为 Clash 代理对象
  * @param {string} url - Shadowsocks URL
  * @returns {Object|null} Clash 代理对象
