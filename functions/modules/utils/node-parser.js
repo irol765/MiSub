@@ -304,7 +304,7 @@ function isValidUUID(uuid) {
  * subconverter 的 ss 解析只看 mux 键是否存在，会把 mux=0 误判为 true；
  * 而 mux 缺省即为关闭，删除 falsy 值不改变语义。
  */
-function stripFalsyMuxFromSsUrl(url) {
+export function stripFalsyMuxFromSsUrl(url) {
     if (typeof url !== 'string' || !url.startsWith('ss://')) return url;
     const qIndex = url.indexOf('?');
     if (qIndex === -1) return url;

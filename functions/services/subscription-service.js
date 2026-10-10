@@ -3,7 +3,7 @@
  * @author MiSub Team
  */
 
-import { parseNodeList } from '../modules/utils/node-parser.js';
+import { parseNodeList, stripFalsyMuxFromSsUrl } from '../modules/utils/node-parser.js';
 import { parseNodeInfo } from '../modules/utils/geo-utils.js';
 import { getProcessedUserAgent } from '../utils/format-utils.js';
 import { buildFetchProxyUrl } from '../utils/fetch-proxy-utils.js';
@@ -665,6 +665,10 @@ export async function generateCombinedNodeList(
     }
 
     // --- 阶段 3: 后置格式化与增强 (Post-Formatting & Enhancement) ---
+
+    // 3.0 去除 SS plugin 中的 falsy mux（mux=0/false），防止下游 subconverter
+    //     只看键存在而误判为 mux: true；覆盖订阅缓存等未重新解析的来源路径
+    currentLines = currentLines.map((line) => stripFalsyMuxFromSsUrl(line));
 
     // 3.1 YAML 兼容性净化
     currentLines = currentLines.map((line) => sanitizeNodeForYaml(line));
