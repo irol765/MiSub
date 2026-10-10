@@ -300,6 +300,35 @@ function isValidUUID(uuid) {
 }
 
 /**
+ * 去除 SS 链接 plugin 参数中的 falsy mux（mux=0 / mux=false）。
+ * subconverter 的 ss 解析只看 mux 键是否存在，会把 mux=0 误判为 true；
+ * 而 mux 缺省即为关闭，删除 falsy 值不改变语义。
+ */
+function stripFalsyMuxFromSsUrl(url) {
+    if (typeof url !== 'string' || !url.startsWith('ss://')) return url;
+    const qIndex = url.indexOf('?');
+    if (qIndex === -1) return url;
+    const hashIndex = url.indexOf('#', qIndex);
+    const query = hashIndex === -1 ? url.slice(qIndex + 1) : url.slice(qIndex + 1, hashIndex);
+    if (!query.includes('plugin')) return url;
+    const params = new URLSearchParams(query);
+    const plugin = params.get('plugin');
+    if (!plugin) return url;
+    const parts = plugin.split(';');
+    const kept = parts.filter((part) => {
+        const eq = part.indexOf('=');
+        if (eq === -1) return true;
+        const key = part.slice(0, eq).trim().toLowerCase();
+        const val = part.slice(eq + 1).trim().toLowerCase();
+        return !(key === 'mux' && (val === '0' || val === 'false'));
+    });
+    if (kept.length === parts.length) return url;
+    params.set('plugin', kept.join(';'));
+    const rest = hashIndex === -1 ? '' : url.slice(hashIndex);
+    return url.slice(0, qIndex + 1) + params.toString() + rest;
+}
+
+/**
  * 解析节点列表 (用于预览和计数)
  */
 export function parseNodeList(content, options = {}) {
@@ -309,6 +338,9 @@ export function parseNodeList(content, options = {}) {
         .map((nodeUrl) => {
             // 1. 修复编码 (如 Hysteria2 密码)
             let fixedUrl = fixNodeUrlEncoding(nodeUrl, options);
+
+            // 1.5 去除 SS plugin 中的 falsy mux，避免下游 subconverter 误判
+            fixedUrl = stripFalsyMuxFromSsUrl(fixedUrl);
 
             // 2. [新增] 验证和修复 SS 2022 节点 & 过滤传统 SS 算法
             let ss2022Warning = null;
