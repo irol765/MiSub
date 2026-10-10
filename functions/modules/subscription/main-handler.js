@@ -50,6 +50,7 @@ import {
 } from './template-pipeline.js';
 import { getBuiltinTemplate } from './builtin-template-registry.js';
 import { assertPublicNetworkUrl } from '../security-utils.js';
+import { stripFalsyMuxFromSsUrl } from '../utils/node-parser.js';
 
 function maskSensitiveLogValue(value) {
     const text = String(value ?? '');
@@ -987,7 +988,7 @@ export async function handleMisubRequest(context) {
             generationSettings.nodeTransform.addFlagEmoji = true;
         }
 
-        const freshNodes = await generateCombinedNodeList(
+        const freshNodesRaw = await generateCombinedNodeList(
             context, // 传入完整 context
             { ...config, enableAccessLog: false }, // [Deferred Logging] Disable service-side logging, we will log manually in handler
             userAgentHeader,
@@ -999,6 +1000,11 @@ export async function handleMisubRequest(context) {
                 ruleLevel: ruleLevel || generationSettings.ruleLevel,
             }
         );
+        // 出口兜底：去除 SS plugin 中的 falsy mux，避免下游 subconverter 误判
+        const freshNodes = freshNodesRaw
+            .split('\n')
+            .map((line) => stripFalsyMuxFromSsUrl(line))
+            .join('\n');
         const sourceNames = targetMisubs
             .filter((s) => typeof s?.url === 'string' && s.url.startsWith('http'))
             .map((s) => s.name || s.url);
@@ -1048,7 +1054,7 @@ export async function handleMisubRequest(context) {
             (sub) => sub?.enabled && typeof sub?.url === 'string' && !sub.url.startsWith('http')
         ).length;
 
-    const { combinedNodeList, cacheHeaders } = await resolveNodeListWithCache({
+    let { combinedNodeList, cacheHeaders } = await resolveNodeListWithCache({
         storageAdapter,
         cacheKey,
         forceRefresh,
@@ -1057,6 +1063,14 @@ export async function handleMisubRequest(context) {
         targetMisubsCount: targetMisubs.length,
         expectedNodeCount: expectedRemoteNodeCount,
     });
+
+    // 出口兜底：无论节点列表来自新鲜生成还是缓存保留，都去除 SS falsy mux
+    if (combinedNodeList) {
+        combinedNodeList = combinedNodeList
+            .split('\n')
+            .map((line) => stripFalsyMuxFromSsUrl(line))
+            .join('\n');
+    }
 
     console.log(`[MiSub Nodes] Count/Length: ${combinedNodeList ? combinedNodeList.length : 0}`);
 
